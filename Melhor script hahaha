@@ -1,0 +1,71 @@
+local running = false -- Variável para controlar o loop, começando em falso
+
+-- Função para executar o loop
+local function loopFunction()
+    while running do
+        local args = {
+            [1] = "collectOrb",
+            [2] = "Ethereal Orb",
+            [3] = "City"
+        }
+        for i = 1, 100 do -- Aumenta a quantidade de scripts de coleta
+            game:GetService("ReplicatedStorage"):WaitForChild("rEvents"):WaitForChild("orbEvent"):FireServer(unpack(args))
+        end
+        wait(0.001) -- Adiciona uma pequena pausa para evitar travamentos e permitir maior velocidade
+    end
+end
+
+-- Cria uma interface de usuário simples e movível
+local screenGui = Instance.new("ScreenGui")
+local toggleButton = Instance.new("TextButton")
+local dragging = false -- Adiciona a variável de controle para arrastar
+local dragInput, dragStart, startPos
+
+screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+toggleButton.Parent = screenGui
+toggleButton.Size = UDim2.new(0, 200, 0, 50)
+toggleButton.Position = UDim2.new(0.5, -100, 0.5, -25)
+toggleButton.Text = "Iniciar Coleta de Orbes"
+
+-- Função para alternar o loop quando o botão é pressionado
+toggleButton.MouseButton1Click:Connect(function()
+    running = not running
+    if running then
+        toggleButton.Text = "Parar Coleta de Orbes"
+        spawn(loopFunction) -- Inicia o loop em uma nova thread
+    else
+        toggleButton.Text = "Iniciar Coleta de Orbes"
+    end
+end)
+
+-- Função para fazer a interface de usuário ser movível
+local function update(input)
+    local delta = input.Position - dragStart
+    toggleButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+toggleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = toggleButton.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+toggleButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and input == dragInput then
+        update(input)
+    end
+end)
